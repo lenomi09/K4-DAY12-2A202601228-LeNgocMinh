@@ -129,18 +129,18 @@ class TestPublicDeployment:
         )
 
     def test_healthz_tra_ve_200(self, base_url):
-        response = call("GET", f"{base_url}/healthz", timeout=FIRST_CALL_TIMEOUT)
+        response = call("GET", f"{base_url}/health", timeout=FIRST_CALL_TIMEOUT)
         assert response.status_code == 200, (
-            f"{base_url}/healthz trả {response.status_code}. "
+            f"{base_url}/health trả {response.status_code}. "
             "Xem log trên dashboard của platform."
         )
         assert response.json().get("status") == "ok"
 
     def test_readyz_tra_ve_200(self, base_url):
-        """/readyz 200 nghĩa là service đã kết nối được Redis trên cloud."""
-        response = call("GET", f"{base_url}/readyz")
+        """/ready 200 nghĩa là service đã kết nối được Redis trên cloud."""
+        response = call("GET", f"{base_url}/ready")
         assert response.status_code == 200, (
-            f"/readyz trả {response.status_code} — nhiều khả năng biến REDIS_URL "
+            f"/ready trả {response.status_code} — nhiều khả năng biến REDIS_URL "
             "trên cloud chưa đúng hoặc chưa tạo Redis instance"
         )
 
@@ -175,10 +175,10 @@ class TestLocalFallback:
     """Phương án dự phòng: stack chạy bằng docker compose ở máy + screenshot."""
 
     def test_stack_dang_chay(self, base_url):
-        assert call("GET", f"{base_url}/healthz").status_code == 200
+        assert call("GET", f"{base_url}/health").status_code == 200
 
     def test_readyz_ket_noi_duoc_redis(self, base_url):
-        assert call("GET", f"{base_url}/readyz").status_code == 200
+        assert call("GET", f"{base_url}/ready").status_code == 200
 
     def test_chat_yeu_cau_xac_thuc(self, base_url):
         response = call("POST", f"{base_url}/chat", json={"message": "Hello"})

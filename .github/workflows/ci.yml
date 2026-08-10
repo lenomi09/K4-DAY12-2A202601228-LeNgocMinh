@@ -51,4 +51,4 @@ jobs:
       - name: Smoke test
         run: |
           sleep 45
-          curl -fsS "${{ vars.PUBLIC_URL }}/healthz"
+          curl -fsS "${{ vars.PUBLIC_URL }}/health"

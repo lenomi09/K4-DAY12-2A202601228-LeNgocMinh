@@ -118,28 +118,28 @@ tương tự — dùng đúng quy ước thì được cả hệ sinh thái côn
 Có định dạng này rồi thì bạn hỏi được những câu mà `print()` không trả lời nổi:
 *"client nào tiêu nhiều tiền nhất hôm nay?"*, *"tỷ lệ lỗi 5 phút qua là bao nhiêu?"*
 
-#### 1.3 — `/healthz` trong `app/main.py`
+#### 1.3 — `/health` trong `app/main.py`
 
 ```
-GET /healthz  →  200  {"status": "ok", "service": ..., "version": ...}
+GET /health  →  200  {"status": "ok", "service": ..., "version": ...}
 ```
 
 Đang tắt dần (`shutdown_guard.draining`) → `503 {"status": "draining"}`.
 Phần 503 thuộc CP4, nhưng viết luôn bây giờ cũng được.
 
-**Quy tắc: `/healthz` không được chạm vào Redis, database hay bất cứ dependency
+**Quy tắc: `/health` không được chạm vào Redis, database hay bất cứ dependency
 nào.** Nó chỉ trả lời "process này có cần restart không?". Nếu nó phụ thuộc
 Redis, Redis nấc một cái là orchestrator restart toàn bộ container — biến sự cố
-nhỏ thành sự cố lớn. (Endpoint kiểm tra dependency là `/readyz`, làm ở CP4.)
+nhỏ thành sự cố lớn. (Endpoint kiểm tra dependency là `/ready`, làm ở CP4.)
 
-Tên có đuôi `z` là quy ước từ Kubernetes: `/healthz`, `/readyz`, `/livez`. Chữ
+Tên có đuôi `z` là quy ước từ Kubernetes: `/health`, `/ready`, `/livez`. Chữ
 `z` để tránh đụng với route thật của ứng dụng.
 
 ### Thử chạy
 
 ```bash
 uvicorn app.main:app --reload --port 8000
-curl -i http://localhost:8000/healthz
+curl -i http://localhost:8000/health
 ```
 
 ### ✅ Checkpoint 1 (15h00)
@@ -216,7 +216,7 @@ USER appuser
 
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()" || exit 1
 
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 ```
@@ -251,7 +251,7 @@ docker build -t day12-chat:prod .
 docker images day12-chat:prod           # ghi lại dung lượng cho câu 3 exercises
 
 docker compose up -d
-curl http://localhost:8000/healthz
+curl http://localhost:8000/health
 docker compose logs chat
 ```
 
@@ -442,10 +442,10 @@ Hai chi tiết bắt buộc:
   = tiền token vô hạn
 - `expire` để hội thoại cũ tự hết hạn — không thì Redis đầy dần đến khi sập
 
-`ping()` phải nuốt mọi exception và trả `False`. Nó dùng cho `/readyz`; một
+`ping()` phải nuốt mọi exception và trả `False`. Nó dùng cho `/ready`; một
 exception thoát ra sẽ biến readiness probe thành lỗi 500.
 
-#### 4.2 — `/readyz`
+#### 4.2 — `/ready`
 
 ```
 Redis sống  →  200 {"status": "ready", "redis": true}
@@ -453,9 +453,9 @@ Redis chết  →  503 {"status": "not ready", "redis": false}
 Đang tắt    →  503 {"status": "draining"}
 ```
 
-Khác `/healthz` ở đúng một điểm cốt lõi:
+Khác `/health` ở đúng một điểm cốt lõi:
 
-| | `/healthz` (liveness) | `/readyz` (readiness) |
+| | `/health` (liveness) | `/ready` (readiness) |
 |---|---|---|
 | Câu hỏi | Process còn sống không? | Nhận traffic được chưa? |
 | Kiểm tra dependency | **Không** | **Có** |
@@ -485,7 +485,7 @@ def start_draining(self, signum=None, frame=None):
 ```
 
 Handler chạy xen giữa bytecode nên chỉ được làm việc rất nhẹ. Bật cờ →
-`/healthz` trả 503 → load balancer rút instance khỏi vòng xoay → uvicorn xử lý
+`/health` trả 503 → load balancer rút instance khỏi vòng xoay → uvicorn xử lý
 nốt request đang chạy rồi thoát.
 
 **Cái bẫy ở đây:** mỗi tín hiệu chỉ có **một** handler. Đăng ký handler của mình
@@ -527,7 +527,7 @@ pytest tests/test_cp4.py -v
   thay vì `self.start_draining` (tham chiếu hàm)
 - `test_khong_co_bien_toan_cuc_giu_state` rớt: còn một dict toàn cục trong
   `main.py` hoặc `store.py` — xóa và chuyển sang Redis
-- `/readyz` trả 200 dù Redis chết: bạn quên kiểm tra giá trị trả về của `ping()`
+- `/ready` trả 200 dù Redis chết: bạn quên kiểm tra giá trị trả về của `ping()`
 
 </details>
 
@@ -581,13 +581,13 @@ Variables). Railway tự set `PORT` — đừng ghi đè.
 ```bash
 URL=https://<domain-cua-ban>
 
-curl -i $URL/healthz         # 200 {"status":"ok"}
-curl -i $URL/readyz          # 200 {"status":"ready"} ← chứng minh đã nối Redis
+curl -i $URL/health         # 200 {"status":"ok"}
+curl -i $URL/ready          # 200 {"status":"ready"} ← chứng minh đã nối Redis
 curl -i -X POST $URL/chat -H "Content-Type: application/json" \
   -d '{"message":"Hello"}'   # 401 — không có token thì không được vào
 ```
 
-`/readyz` trả 503 gần như luôn có nghĩa là `REDIS_URL` trên cloud sai hoặc chưa
+`/ready` trả 503 gần như luôn có nghĩa là `REDIS_URL` trên cloud sai hoặc chưa
 tạo Redis.
 
 ### Điền `DEPLOYMENT.md`
@@ -636,10 +636,10 @@ pytest tests/test_cp5.py -v
 - Build trên cloud fail còn ở máy thì được: thường do `.dockerignore` loại trừ
   file mà build cần, hoặc bạn quên commit file nào đó
 - Deploy xong nhưng health check timeout: app đang bind `127.0.0.1` hoặc cố định
-  cổng 8000 thay vì đọc `$PORT`; hoặc platform đang gọi `/health` thay vì `/healthz`
+  cổng 8000 thay vì đọc `$PORT`; hoặc platform đang gọi `/health` thay vì `/health`
 - Request đầu tiên rất chậm rồi các request sau nhanh: free tier "ngủ đông" khi
   không có traffic — bình thường
-- `/readyz` 503: kiểm tra `REDIS_URL` trong dashboard
+- `/ready` 503: kiểm tra `REDIS_URL` trong dashboard
 
 </details>
 
@@ -774,7 +774,7 @@ biết "service còn sống". Thêm một bước gọi vào bản vừa lên:
 - name: Smoke test
   run: |
     sleep 45
-    curl -fsS "${{ vars.PUBLIC_URL }}/healthz"
+    curl -fsS "${{ vars.PUBLIC_URL }}/health"
 ```
 
 `curl -f` trả mã lỗi khi HTTP không phải 2xx → job đỏ → bạn biết ngay.
@@ -860,7 +860,7 @@ Nộp **link repository** lên LMS. Đối chiếu lại [danh sách kiểm tra]
 | Image > 400MB | build 1 stage, hoặc base image không slim | multi-stage + `python:3.11-slim` |
 | 429 ngay từ request đầu | xô khởi tạo rỗng thay vì đầy | client mới → trả `float(capacity)` |
 | Xô không bao giờ cạn | quên cập nhật `ts` khi `hset` | ghi cả `tokens` và `ts` |
-| `/readyz` luôn 200 dù Redis chết | không dùng kết quả `ping()` | `if not store.ping(): return 503` |
+| `/ready` luôn 200 dù Redis chết | không dùng kết quả `ping()` | `if not store.ping(): return 503` |
 | Deploy xong health check fail | app không đọc `$PORT` | `--port ${PORT:-8000}` |
 
 ## Phụ Lục B — Bảng Tra Nhanh

@@ -42,10 +42,10 @@ Thay `<URL>` bằng Public URL ở trên:
 
 ```bash
 # 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i <URL>/healthz
+curl -i <URL>/health
 
 # 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i <URL>/readyz
+curl -i <URL>/ready
 
 # 3. Không có token — mong đợi 401 kèm header WWW-Authenticate
 curl -i -X POST <URL>/chat \
@@ -72,12 +72,12 @@ done; echo
 ## Kết Quả Chạy Thật
 
 ```
-$ curl -i https://chat-production-eadb.up.railway.app/healthz
+$ curl -i https://chat-production-eadb.up.railway.app/health
 HTTP/1.1 200 OK
 content-type: application/json
 {"status":"ok","service":"day12-chat-service","version":"1.0.0"}
 
-$ curl -i https://chat-production-eadb.up.railway.app/readyz
+$ curl -i https://chat-production-eadb.up.railway.app/ready
 HTTP/1.1 200 OK
 content-type: application/json
 {"status":"ready","redis":true}
@@ -116,4 +116,4 @@ còn 9 token khi bắt đầu vòng lặp 15 request — đúng với `BUCKET_CA
 Đặt ảnh trong thư mục `screenshots/`:
 
 - `screenshots/dashboard.png` — trang quản lý service trên platform
-- `screenshots/healthz.png` — kết quả gọi `/healthz` từ trình duyệt hoặc curl
+- `screenshots/health.png` — kết quả gọi `/health` từ trình duyệt hoặc curl

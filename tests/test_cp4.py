@@ -1,7 +1,7 @@
 """CHECKPOINT 4 — Scaling & Reliability: stateless, readiness, draining.
 
 Chạy: pytest tests/test_cp4.py -v
-File cần sửa: app/store.py, app/lifecycle.py, app/main.py (/readyz, /healthz, /chat)
+File cần sửa: app/store.py, app/lifecycle.py, app/main.py (/ready, /health, /chat)
 """
 
 from __future__ import annotations
@@ -135,7 +135,7 @@ class TestStateless:
 
 class TestReadiness:
     def test_readyz_tra_200_khi_redis_song(self, client_real_store):
-        response = client_real_store.get("/readyz")
+        response = client_real_store.get("/ready")
         assert response.status_code == 200
         assert response.json()["status"] == "ready"
 
@@ -144,20 +144,20 @@ class TestReadiness:
             def ping(self):
                 return False
 
-        response = client_factory(store=StoreChet()).get("/readyz")
+        response = client_factory(store=StoreChet()).get("/ready")
         assert response.status_code == 503, (
-            "Redis chết mà /readyz vẫn 200 thì load balancer sẽ đẩy traffic vào "
+            "Redis chết mà /ready vẫn 200 thì load balancer sẽ đẩy traffic vào "
             "một instance không phục vụ được"
         )
 
     def test_readyz_khac_healthz(self, client_real_store):
-        """/healthz không kiểm tra dependency, /readyz thì có."""
+        """/health không kiểm tra dependency, /ready thì có."""
         import inspect
 
         from app.main import readyz
 
         assert inspect.signature(readyz).parameters, (
-            "/readyz phải nhận store làm dependency để kiểm tra kết nối"
+            "/ready phải nhận store làm dependency để kiểm tra kết nối"
         )
 
 
@@ -213,12 +213,12 @@ class TestGracefulShutdown:
     def test_healthz_bao_503_khi_dang_drain(self, client):
         from app.lifecycle import shutdown_guard
 
-        assert client.get("/healthz").status_code == 200
+        assert client.get("/health").status_code == 200
 
         shutdown_guard.start_draining(signal.SIGTERM, None)
-        response = client.get("/healthz")
+        response = client.get("/health")
         assert response.status_code == 503, (
-            "đang tắt dần thì /healthz phải trả 503 để load balancer ngừng gửi "
+            "đang tắt dần thì /health phải trả 503 để load balancer ngừng gửi "
             "request mới vào instance này"
         )
         assert response.json()["status"] == "draining"
@@ -227,4 +227,4 @@ class TestGracefulShutdown:
         from app.lifecycle import shutdown_guard
 
         shutdown_guard.start_draining(signal.SIGTERM, None)
-        assert client_real_store.get("/readyz").status_code == 503
+        assert client_real_store.get("/ready").status_code == 503

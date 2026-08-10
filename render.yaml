@@ -9,7 +9,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    healthCheckPath: /healthz
+    healthCheckPath: /health
     envVars:
       - key: API_TOKEN
         sync: false

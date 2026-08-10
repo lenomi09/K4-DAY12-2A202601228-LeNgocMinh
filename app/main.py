@@ -78,7 +78,7 @@ class ChatRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────
 # Health & readiness
 # ─────────────────────────────────────────────────────────────
-@app.get("/healthz")
+@app.get("/health")
 def healthz():
     """Liveness probe — process còn sống không?
 
@@ -97,7 +97,7 @@ def healthz():
     return {"status": "ok", "service": SERVICE_NAME, "version": SERVICE_VERSION}
 
 
-@app.get("/readyz")
+@app.get("/ready")
 def readyz(store: ChatStore = Depends(get_store)):
     """Readiness probe — đã sẵn sàng nhận traffic chưa?
 
@@ -106,7 +106,7 @@ def readyz(store: ChatStore = Depends(get_store)):
       - ``store.ping()`` False → 503 ``{"status": "not ready", "redis": False}``
       - Ngược lại → ``{"status": "ready", "redis": True}``
 
-    Khác /healthz ở chỗ: endpoint này ĐƯỢC PHÉP kiểm tra dependency. Load
+    Khác /health ở chỗ: endpoint này ĐƯỢC PHÉP kiểm tra dependency. Load
     balancer dùng nó để quyết định có đẩy request vào instance này không.
     """
     if shutdown_guard.draining:

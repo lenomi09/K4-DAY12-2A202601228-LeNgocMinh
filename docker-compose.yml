@@ -12,7 +12,7 @@
 #   [ ] REDIS_URL trỏ tới `redis://redis:6379/0` — trong compose, tên service
 #       chính là hostname
 #   [ ] depends_on: redis
-#   [ ] healthcheck gọi /healthz
+#   [ ] healthcheck gọi /health
 #
 # ĐIỂM CỘNG: thêm service `nginx` làm load balancer (nginx/nginx.conf đã có sẵn)
 #     docker compose up --scale chat=3
@@ -48,7 +48,7 @@ services:
     depends_on:
       - redis
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()"]
       interval: 30s
       timeout: 5s
       retries: 3

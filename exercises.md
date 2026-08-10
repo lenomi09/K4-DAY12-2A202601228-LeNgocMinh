@@ -20,7 +20,7 @@ khởi động nếu thiếu biến môi trường. Hãy mô tả một tình hu
 > Khi tôi deploy lần đầu lên Railway, tôi tạo service `chat` trước rồi mới
 > gõ lệnh `railway variables --set API_TOKEN=...` sau. Nếu tôi lỡ deploy
 > trước khi set biến, và `api_token` có mặc định kiểu `"changeme"`, thì app
-> vẫn khởi động bình thường, `/healthz` vẫn trả 200, tôi sẽ tưởng deploy
+> vẫn khởi động bình thường, `/health` vẫn trả 200, tôi sẽ tưởng deploy
 > thành công — trong khi thực tế endpoint `/chat` đang mở cho bất kỳ ai biết
 > chuỗi `"changeme"` (một giá trị dễ đoán) gọi vào và tiêu ngân sách LLM của
 > tôi. Vì `api_token: str` không có mặc định, pydantic-settings ném
@@ -236,12 +236,12 @@ bao nhiêu và service tự hồi phục khi nào?
 
 ---
 
-### Câu 9 — /healthz khác /readyz (CP4)
+### Câu 9 — /health khác /ready (CP4)
 
 Nếu gộp hai endpoint làm một và cho nó kiểm tra Redis, chuyện gì xảy ra với cụm
 3 container khi Redis mất kết nối 30 giây? Trả lời theo đúng thứ tự sự kiện.
 
-> Thứ tự sự kiện nếu `/healthz` (liveness) cũng gọi `store.ping()`:
+> Thứ tự sự kiện nếu `/health` (liveness) cũng gọi `store.ping()`:
 >
 > 1. Redis mất kết nối. Cả 3 container `chat` cùng gọi vào một Redis, nên
 >    cả 3 đồng thời thấy `ping()` trả `False` ngay ở lần probe tiếp theo.
@@ -254,9 +254,9 @@ Nếu gộp hai endpoint làm một và cho nó kiểm tra Redis, chuyện gì x
 > 4. Trong lúc cả 3 container đang restart (tốn vài giây tới vài chục
 >    giây để container mới boot, app khởi động, kết nối lại), **không còn
 >    container nào phục vụ request** — kể cả những request hoàn toàn không
->    liên quan tới Redis (ví dụ chỉ hỏi `/healthz` để kiểm tra sống chết).
+>    liên quan tới Redis (ví dụ chỉ hỏi `/health` để kiểm tra sống chết).
 > 5. Nếu Redis chỉ mất kết nối 30 giây rồi tự hồi phục, sự cố lẽ ra chỉ nên
->    khiến `/readyz` báo not-ready trong 30 giây đó (load balancer tạm
+>    khiến `/ready` báo not-ready trong 30 giây đó (load balancer tạm
 >    ngừng gửi traffic, container vẫn sống, không ai bị kill) — nhưng vì
 >    gộp chung, một sự cố Redis 30 giây biến thành cả cụm service chết hẳn
 >    trong thời gian dài hơn (30 giây sự cố + thời gian cả 3 container
@@ -300,5 +300,5 @@ tìm ra nguyên nhân bằng cách nào, và sửa ra sao?
 > startCommand = "sh -c \"uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\""
 > ```
 >
-> Deploy lại (`railway up -s chat --ci`) thành công, `/healthz` và `/readyz`
+> Deploy lại (`railway up -s chat --ci`) thành công, `/health` và `/ready`
 > đều trả 200 ngay sau đó.

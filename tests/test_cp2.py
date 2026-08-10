@@ -122,7 +122,7 @@ class TestDockerfile:
             "thiếu HEALTHCHECK — Docker không biết container có còn phục vụ được không"
         )
         block = dockerfile_text[dockerfile_text.upper().find("HEALTHCHECK"):]
-        assert "/healthz" in block, "HEALTHCHECK phải gọi vào endpoint /healthz"
+        assert "/health" in block, "HEALTHCHECK phải gọi vào endpoint /health"
 
     def test_khong_hardcode_secret(self, dockerfile_text):
         for bad in ("sk-", "API_TOKEN=", "password"):

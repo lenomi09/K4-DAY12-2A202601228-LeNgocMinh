@@ -117,8 +117,8 @@ Chi tiết từng bước: [LAB_GUIDE.md](LAB_GUIDE.md).
 
 | | |
 |---|---|
-| `GET /healthz` | Liveness — 200 khi process sống, 503 khi đang tắt dần |
-| `GET /readyz` | Readiness — 200 khi nối được Redis, 503 khi không |
+| `GET /health` | Liveness — 200 khi process sống, 503 khi đang tắt dần |
+| `GET /ready` | Readiness — 200 khi nối được Redis, 503 khi không |
 | `POST /chat` | Endpoint chính, cần `Authorization: Bearer <token>` |
 
 ```bash
@@ -311,7 +311,7 @@ Nộp **link repository** lên codelab. Repo phải ở chế độ public.
 - [ ] `python grade.py` — xem điểm, mục tiêu ≥ 75/100
 - [ ] `exercises.md` — đủ 10 câu, viết bằng lời của mình
 - [ ] `DEPLOYMENT.md` — có Public URL thật, không dán giá trị token
-- [ ] `screenshots/` — có ảnh dashboard và ảnh gọi `/healthz`
+- [ ] `screenshots/` — có ảnh dashboard và ảnh gọi `/health`
 - [ ] `.env` **không** nằm trong repo (`git ls-files | grep .env` chỉ ra `.env.example`)
 - [ ] Không còn `NotImplementedError` nào trong `app/`
 - [ ] Có commit ở nhiều mốc thời gian, không phải một commit duy nhất
