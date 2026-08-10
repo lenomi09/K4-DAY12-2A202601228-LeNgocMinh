@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-DAY12-...) |
+| Họ và tên | Lê Ngọc Minh |
+| Mã học viên | 2A202601228 |
+| Repo | https://github.com/lenomi09/K4-DAY12-2A202601228-LeNgocMinh |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://chat-production-eadb.up.railway.app |
+| Platform | Railway |
+| Ngày deploy | 2026-08-10 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -30,7 +30,7 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 |------|--------|---------|
 | `PORT` | ✅ | platform tự gán |
 | `API_TOKEN` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `REDIS_URL` | ✅ | Redis add-on của Railway (kết nối nội bộ qua `redis.railway.internal`) |
 | `BUCKET_CAPACITY` | ✅ | 10 |
 | `REFILL_PER_MINUTE` | ✅ | 10 |
 | `DAILY_BUDGET_USD` | ✅ | 1.0 |
@@ -71,11 +71,45 @@ done; echo
 
 ## Kết Quả Chạy Thật
 
-Dán output của các lệnh trên vào đây:
+```
+$ curl -i https://chat-production-eadb.up.railway.app/healthz
+HTTP/1.1 200 OK
+content-type: application/json
+{"status":"ok","service":"day12-chat-service","version":"1.0.0"}
 
+$ curl -i https://chat-production-eadb.up.railway.app/readyz
+HTTP/1.1 200 OK
+content-type: application/json
+{"status":"ready","redis":true}
+
+$ curl -i -X POST https://chat-production-eadb.up.railway.app/chat \
+  -H "Content-Type: application/json" -d '{"message":"Hello"}'
+HTTP/1.1 401 Unauthorized
+www-authenticate: Bearer
+{"detail":"invalid or missing bearer token"}
+
+$ curl -i -X POST https://chat-production-eadb.up.railway.app/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" -H "X-Client-Id: sv-test" \
+  -d '{"message":"Deploy là gì?"}'
+HTTP/1.1 200 OK
+{"reply":"Với Deploy là gì, cách làm phổ biến trong production là đặt một lớp
+gateway phía trước để lo authentication, rate limiting và bảo vệ chi phí.
+(Mình đang nhớ 2 lượt trao đổi trước đó.)","client_id":"sv-test",
+"turns_before":2,"usd_cost":3.315e-05,"usage":{"prompt":41,"completion":45}}
+
+$ for i in $(seq 1 15); do curl -s -o /dev/null -w "%{http_code} " -X POST \
+  https://chat-production-eadb.up.railway.app/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_TOKEN" -H "X-Client-Id: sv-test" \
+  -d '{"message":"test"}'; done
+200 200 200 200 200 200 200 200 200 429 429 429 429 429 200
 ```
-(điền output)
-```
+
+Ghi chú: client `sv-test` đã dùng 1 token ở lệnh gọi /chat phía trên nên xô chỉ
+còn 9 token khi bắt đầu vòng lặp 15 request — đúng với `BUCKET_CAPACITY=10`.
+9 request đầu qua (200), 5 request tiếp bị chặn (429) vì xô cạn, request thứ
+15 lại 200 vì `REFILL_PER_MINUTE=10` đã kịp nạp lại ≥1 token.
 
 ## Ảnh Chụp Màn Hình
 
@@ -83,20 +117,3 @@ Dán output của các lệnh trên vào đây:
 
 - `screenshots/dashboard.png` — trang quản lý service trên platform
 - `screenshots/healthz.png` — kết quả gọi `/healthz` từ trình duyệt hoặc curl
-
----
-
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
